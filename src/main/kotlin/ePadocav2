@@ -1,0 +1,171 @@
+import kotlin.math.roundToInt
+
+private const val PAES = 1
+private const val SALGADOS = 2
+private const val DOCES = 3
+private const val BEBIDAS = 4
+private const val FINALIZAR = 0
+private const val LINHA = ".........."
+
+val imprimirCategorias = """
+    Digite a opção desejada no Menu:
+    1..................Pães
+    2..............Salgados
+    3.................Doces
+    4...............Bebidas
+    0......Finalizar compra
+""".trimIndent()
+
+val comanda = Comanda()
+
+fun main(){
+    do {
+        var finalizarCompra = "S"
+        ePadocav2()
+
+        if (comanda.totalItens == 0) {
+            println("Deseja mesmo finalizar a compra? (S/N)")
+            finalizarCompra = readln().uppercase()
+        } else {
+            println("Deseja informa um Cupom de desconto? (S/N)")
+            val temCupom = readln().uppercase()
+            if (temCupom.equals("S")) comanda.aplicarDesconto()
+            comanda.imprimir()
+        }
+    } while (finalizarCompra != "S")
+}
+
+fun ePadocav2() {
+    println("Bem Vindo à padaria E-Padoca!")
+    do {
+        println(imprimirCategorias)
+
+        val categoria = readln().toInt()
+
+        when (categoria) {
+            PAES ->  selecionaProduto("Pães")
+            SALGADOS -> selecionaProduto("Salgados")
+            DOCES -> selecionaProduto("Doces")
+            BEBIDAS -> selecionaProduto("Bebidas")
+            else -> Unit
+        }
+    } while (categoria != FINALIZAR)
+}
+
+fun selecionaProduto(cat: String)
+{
+    do {
+        println("Opção......Nome..............Valor")
+        ProdutoPrimario.imprimirPorCategoria(cat)
+        println("0$LINHA Finalizar")
+        val produtoSelecionado = readln().toInt()
+        if(produtoSelecionado!=0)
+            selecionaQuantidadeDoProduto(ProdutoPrimario.getProduto(cat,produtoSelecionado))
+
+    } while (produtoSelecionado != 0)
+}
+
+fun selecionaQuantidadeDoProduto(produtoSelecionado: ProdutoPrimario) {
+    println("Digite a quantidade:")
+    val qtd = readln().toInt()
+    if (qtd==0){
+        return
+    }
+    comanda.adicionarProduto(Produto(index = 0,produtoPrimario = produtoSelecionado, quantidade = qtd))
+
+}
+
+enum class ProdutoPrimario(val nome: String, val precoUnit: Double,val categoria: String,val indexMenu:Int) {
+    PAOFRANCES("Pão Francês", 0.6, "Pães", 1),
+    PAODELEITE("Pão de Leite", 0.4, "Pães", 2),
+    PAODEMILHO("Pão de Milho", 0.5, "Pães", 3),
+    COXINHA("Coxinha", 5.00, "Salgados", 1),
+    ESFIHA("Esfiha", 4.00, "Salgados", 2),
+    PAODEQUEIJO("Pão de Queijo", 3.00, "Salgados", 3),
+    CAROLINA("Carolina", 1.50, "Doces", 1),
+    PUDIM("Pudim", 4.00, "Doces", 2),
+    BRIGADEIRO("Brigadeiro", 2.00, "Doces", 3),
+    CAFEPURO("CafePuro", 1.00, "Bebidas", 1),
+    CAFEPINGADO("Pingado", 2.00, "Bebidas", 2),
+    SUCO("Suco", 4.00, "Bebidas", 3);
+
+    companion object {
+        fun imprimirPorCategoria(cat: String) {
+            for (produto in ProdutoPrimario.values()) {
+                if (produto.categoria == cat)
+                    println(produto)
+            }
+        }
+
+        fun getProduto(cat: String, index: Int):ProdutoPrimario{
+            for (produto in ProdutoPrimario.values()) {
+                if (produto.categoria == cat && produto.indexMenu == index)
+                    return produto
+            }
+            return TODO("Provide the return value")
+        }
+    }
+
+    override fun toString(): String = "$indexMenu$LINHA$nome$LINHA$precoUnit"
+}
+
+class Produto(var index:Int,val produtoPrimario: ProdutoPrimario,val quantidade:Int){
+
+    override fun toString(): String =
+        "$index$LINHA${produtoPrimario.nome}$LINHA$quantidade$LINHA${produtoPrimario.precoUnit}" +
+                "$LINHA${quantidade*produtoPrimario.precoUnit}"
+}
+
+class Comanda(){
+    val comanda: MutableList<Produto> = mutableListOf()
+    var totalItens: Int = 0
+    var total: Double = 0.0
+    var desconto: Double = 0.0
+
+    fun adicionarProduto(pr: Produto){
+        totalItens +=1
+        pr.index = totalItens
+        comanda.add(pr)
+        total += pr.quantidade * pr.produtoPrimario.precoUnit
+    }
+
+    fun imprimir(){
+        println("=====================Comanda E-padoca========================")
+        println("item.......Produto.............Qtd.......Valor...........Total")
+        for(i in comanda.indices){
+            println("${comanda[i]}")
+        }
+        println("======================== Total  R$ ${(total*100).roundToInt()/100.0} =====================" +
+                "\n=============== Desconto de Cupons R$ ${(desconto*100).roundToInt()/100.0} ====================" +
+                "\n======================= VOLTE SEMPRE ^-^ ======================")
+    }
+
+    fun aplicarDesconto() {
+        println("Digite o Cupom:")
+        val cupom = readln()
+        try {
+            when (cupom) {
+                "5PADOCA" -> desconto = 0.05 * total
+                "10PADOCA" -> desconto = 0.10 * total
+                "5OFF" -> if (total > 5) desconto = 5.0
+                else {
+                    println("Valor não ultrapassa o mínimo de R$5.")
+                    cupomInvalido()
+                }
+
+                else -> throw CupomInvalidoException()
+            }
+        }catch (e: CupomInvalidoException) {
+            println(e.localizedMessage)
+            return
+        }
+        total = total - desconto
+    }
+
+}
+
+class CupomInvalidoException: Exception() {
+    override fun getLocalizedMessage(): String {
+        return "Erro: Cupom Inválido"
+    }
+}
