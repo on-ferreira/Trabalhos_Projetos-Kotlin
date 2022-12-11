@@ -22,7 +22,7 @@ val menuLojaOpcoes = """
 class Peixe(val nome:String,val cor:String, val tamanho:String){
 
     fun statusPeixe():String {
-        val status: Int = Random.nextInt(1, 4)
+        val status: Int = Random.nextInt(1, 6)
         return when (status) {
             1 -> "nada tranquilamente pelo aquário"
             2 -> "se esconde entre as algas"
