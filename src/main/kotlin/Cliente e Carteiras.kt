@@ -1,4 +1,4 @@
-import DepositoNegativoException as DepositoNegativoException
+data class SaldoObj(var s : Double = 0.0)
 
 open class Cliente(
     val nome: String,
@@ -14,7 +14,8 @@ class ClienteNormal(
     cpf: String,
     senha: String,
     plano: String) : Cliente(nome,sobrenome,cpf,senha,plano) {
-    val carteira = CarteiraFisica(senha, "Fisica",0.0)
+    private var saldo = SaldoObj()
+    val carteira = CarteiraFisica(senha, "Fisica",saldo)
 }
 
 class ClienteDigital(
@@ -23,7 +24,8 @@ class ClienteDigital(
     cpf: String,
     senha: String,
     plano: String) : Cliente(nome,sobrenome,cpf,senha,plano) {
-    val carteira = CarteiraDigital(senha,"Digital",0.0)
+    private var saldo = SaldoObj()
+    val carteira = CarteiraDigital(senha,"Digital",saldo)
 }
 
 class ClientePremium(
@@ -32,22 +34,23 @@ class ClientePremium(
     cpf: String,
     senha: String,
     plano: String) : Cliente(nome,sobrenome,cpf,senha,plano){
-    val carteiraFisica = CarteiraFisica(senha,"Fisica",0.0)
-    val carteiraDigital = CarteiraDigital(senha,"Digital",0.0)
+    private var saldo = SaldoObj()
+    val carteiraFisica = CarteiraFisica(senha,"Fisica",saldo)
+    val carteiraDigital = CarteiraDigital(senha,"Digital",saldo)
 }
 
 abstract class Carteira(
     private val senha: String,
     val tipo: String,
-    protected var saldo: Double,
+    protected var saldo: SaldoObj,
     val extrato: MutableList<String> = mutableListOf()
 ){
     fun pagarBoleto(valorBoleto:Double, codBarras:String, senhaDigitada: String) {
         try {
             if (this.verificarSenha(senhaDigitada)) {
-                if (valorBoleto >= saldo) {
-                    saldo -= valorBoleto
-                    extrato.add("Boleto $codBarras pago no valor de R$ $valorBoleto")
+                if (valorBoleto <= saldo.s) {
+                    saldo.s -= valorBoleto
+                    extrato.add("Boleto $codBarras pago no valor de R$ $valorBoleto - Conta $tipo")
                     // Implementar um função que faça o pagamento do boleto pelo cod barras
                 } else throw SaldoInsuficienteException()
             } else throw SenhaIncorretaException()
@@ -61,7 +64,7 @@ abstract class Carteira(
     fun consultarSaldo(senhaDigitada: String):Double?{
         try{
             if(this.verificarSenha(senhaDigitada))
-                return saldo
+                return saldo.s
             else throw SenhaIncorretaException()
         }catch (e: SenhaIncorretaException){
             println(e.localizedMessage)
@@ -77,15 +80,15 @@ abstract class Carteira(
 class CarteiraFisica(
     senha:String,
     tipo:String,
-    saldo:Double,
+    saldo:SaldoObj,
     extrato:MutableList<String> = mutableListOf()
 ): Carteira(senha,tipo,saldo,extrato){
 
     fun deposito(valorDeposito:Double){
         try {
             if (valorDeposito > 0) {
-                saldo += valorDeposito
-                extrato.add("Depósito no valor $valorDeposito")
+                saldo.s += valorDeposito
+                extrato.add("Depósito no valor $valorDeposito - Conta $tipo")
             } else throw DepositoNegativoException()
         } catch(e: DepositoNegativoException){
             println(e.localizedMessage)
@@ -95,9 +98,9 @@ class CarteiraFisica(
     fun saque(valorSaque:Double, senhaDigitada: String){
         try{
             if(this.verificarSenha(senhaDigitada)) {
-                if (valorSaque <= saldo){
-                    saldo -= valorSaque
-                    extrato.add("Saque no valor de $valorSaque")
+                if (valorSaque <= saldo.s){
+                    saldo.s -= valorSaque
+                    extrato.add("Saque no valor de $valorSaque - Conta $tipo")
                 } else throw SaldoInsuficienteException()
             }else throw SenhaIncorretaException()
         } catch (e: SaldoInsuficienteException){
@@ -111,16 +114,16 @@ class CarteiraFisica(
 class CarteiraDigital(
     senha:String,
     tipo:String,
-    saldo:Double,
+    saldo:SaldoObj,
     extrato:MutableList<String> = mutableListOf()
     ):Carteira(senha,tipo,saldo,extrato){
 
     fun transferenciaPIX(valorTransferencia:Double, chavePix:String,senhaDigitada:String){
         try{
             if(this.verificarSenha(senhaDigitada)) {
-                if (valorTransferencia <= saldo){
-                    saldo -= valorTransferencia
-                    extrato.add("Pix no valor $valorTransferencia enviado para $chavePix")
+                if (valorTransferencia <= saldo.s){
+                    saldo.s -= valorTransferencia
+                    extrato.add("Pix no valor $valorTransferencia enviado para $chavePix - Conta $tipo")
                     // Ideia para o futuro, implementar uma função que envie o valor para outra carteira digital a partir da chavePix
                 } else throw SaldoInsuficienteException()
             } else throw SenhaIncorretaException()
@@ -134,9 +137,9 @@ class CarteiraDigital(
     fun investir(valorInvestimento:Double, senhaDigitada: String){
         try{
             if(this.verificarSenha(senhaDigitada)) {
-                if (valorInvestimento <= saldo){
-                    saldo -= valorInvestimento
-                    extrato.add("$valorInvestimento foram investidos")
+                if (valorInvestimento <= saldo.s){
+                    saldo.s -= valorInvestimento
+                    extrato.add("$valorInvestimento foram investidos - Conta $tipo")
                     // Adicionar uma funcionalidade que controle a passagem de tempo e faça o juros ser adicionado no saldo
                 } else throw SaldoInsuficienteException()
             }else throw SenhaIncorretaException()
@@ -151,8 +154,8 @@ class CarteiraDigital(
         //Assumo que isso seja semelhante o deposito em uma conta fisica
         try{
             if(valorGuardar>0){
-                saldo += valorGuardar
-                extrato.add("$valorGuardar foram guardados!")
+                saldo.s += valorGuardar
+                extrato.add("$valorGuardar foram guardados! - Conta $tipo")
             } else throw DepositoNegativoException()
         }catch(e: DepositoNegativoException){
             println(e.localizedMessage)
@@ -162,18 +165,25 @@ class CarteiraDigital(
 }
 
 fun main(){
-    val joseFisica = ClientePremium("Jose","Alvarez",
+    val josePremium = ClientePremium("Jose","Alvarez",
         "12345678910","123456#","Premium")
-    println(joseFisica.carteiraFisica.consultarSaldo("123456#"))
-    joseFisica.carteiraFisica.deposito(10.0)
-    println(joseFisica.carteiraFisica.consultarSaldo("123456#"))
-    joseFisica.carteiraFisica.saque(5.00,"123456#")
-    println(joseFisica.carteiraFisica.consultarSaldo("123456#"))
-    joseFisica.carteiraFisica.saque(15.00,"123456#")
-    println(joseFisica.carteiraFisica.consultarSaldo("123456#"))
-    joseFisica.carteiraFisica.saque(5.00,"123456")
-    println(joseFisica.carteiraFisica.consultarSaldo("123456#"))
-    println(joseFisica.carteiraFisica.extrato.joinToString(separator = "\n"))
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    josePremium.carteiraFisica.deposito(10.0)
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    josePremium.carteiraFisica.saque(5.00,"123456#")
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    josePremium.carteiraFisica.saque(15.00,"123456#")
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    josePremium.carteiraFisica.saque(5.00,"123456")
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    josePremium.carteiraDigital.guardar(100.0)
+    println("Saldo Fisica: "+ josePremium.carteiraFisica.consultarSaldo("123456#")
+            + " Saldo Digital " + josePremium.carteiraDigital.consultarSaldo("123456#"))
+    println(josePremium.carteiraDigital.pagarBoleto(50.5,"ContaLuz","123456#"))
+    println(josePremium.carteiraFisica.consultarSaldo("123456#"))
+    println(josePremium.carteiraFisica.extrato.joinToString(separator = "\n"))
+    println(josePremium.carteiraDigital.extrato.joinToString(separator = "\n"))
+
 
 }
 
